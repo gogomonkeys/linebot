@@ -3,6 +3,7 @@ from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
+import json
 
 app = Flask(__name__)
 
@@ -18,6 +19,8 @@ def callback():
     # get request body as text
     body = request.get_data(as_text=True)
     app.logger.info("Request body: " + body)
+    json_data = json.loads(body)
+    print(json_data)               # 印出 json_data
 
     # handle webhook body
     try:
