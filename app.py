@@ -8,8 +8,8 @@ import json
 app = Flask(__name__)
 
 # LINE Bot 設定
-configuration = Configuration(access_token='你的 LINE Bot Access Token')
-handler = WebhookHandler('你的 LINE Bot Secret')
+configuration = Configuration(access_token='Tb4h2RQnphtyXu3ogWSF4oUatDDaJPZRAKFUMyZjuTi8sa3HkoYdtF48038gI03wVMyyMb2mONqZMfez9Ik14MeP2A+vqdRWU4sFMkwxqnAOad1rIcOEZ7Wpv4sZTDF45SNsFWPvyEF5KTKoYWPoPAdB04t89/1O/w1cDnyilFU=')
+handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
 
 # 請假和所有人員名單
 leave_list = set()  # 記錄請假人
