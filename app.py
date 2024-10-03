@@ -1,7 +1,7 @@
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
+from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, GetProfileRequest
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import json
 
@@ -36,24 +36,29 @@ def callback():
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_id = event.source.user_id  # 取得用戶ID
-    user_list.add(user_id)          # 將用戶加入所有人清單
-
-    user_message = event.message.text  # 取得用戶訊息
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
 
+        # 取得用戶名稱
+        profile = line_bot_api.get_profile_with_http_info(GetProfileRequest(user_id=user_id))
+        user_name = profile[0].display_name  # 用戶的顯示名稱
+
+        user_list.add(user_name)            # 將用戶名稱加入所有人清單
+
+        user_message = event.message.text  # 取得用戶訊息
+
         # 如果訊息中包含 "請假"，將用戶加入請假清單並回覆
         if "請假" in user_message:
-            leave_list.add(user_id)
-            reply = "已將您列入請假名單。"
+            leave_list.add(user_name)
+            reply = f"已將 {user_name} 列入請假名單。"
             line_bot_api.reply_message_with_http_info(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text=reply)]
                 )
             )
-        
+    
         # 如果訊息中包含 "名單"，列出有請假與無請假的人員並回覆
         elif "名單" in user_message:
             on_leave = "\n".join(leave_list) if leave_list else "無人請假"
