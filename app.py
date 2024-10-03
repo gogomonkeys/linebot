@@ -8,8 +8,8 @@ import json
 app = Flask(__name__)
 
 # LINE Bot 設定
-configuration = Configuration(access_token='Tb4h2RQnphtyXu3ogWSF4oUatDDaJPZRAKFUMyZjuTi8sa3HkoYdtF48038gI03wVMyyMb2mONqZMfez9Ik14MeP2A+vqdRWU4sFMkwxqnAOad1rIcOEZ7Wpv4sZTDF45SNsFWPvyEF5KTKoYWPoPAdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
+configuration = Configuration(access_token='你的 LINE Bot Access Token')
+handler = WebhookHandler('你的 LINE Bot Secret')
 
 # 請假和所有人員名單
 leave_list = set()  # 記錄請假人
@@ -43,28 +43,32 @@ def handle_message(event):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
 
-        # 如果訊息中包含 "請假"，將用戶加入請假清單
+        # 如果訊息中包含 "請假"，將用戶加入請假清單並回覆
         if "請假" in user_message:
             leave_list.add(user_id)
             reply = "已將您列入請假名單。"
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=reply)]
+                )
+            )
         
-        # 如果訊息中包含 "名單"，列出有請假與無請假的人員
+        # 如果訊息中包含 "名單"，列出有請假與無請假的人員並回覆
         elif "名單" in user_message:
             on_leave = "\n".join(leave_list) if leave_list else "無人請假"
             no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "無無請假人員"
             reply = f"請假人員:\n{on_leave}\n\n無請假人員:\n{no_leave}"
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=reply)]
+                )
+            )
 
-        # 其他訊息回傳原訊息
+        # 其他訊息不回覆任何內容，避免干擾
         else:
             pass  # 不進行回覆
-
-        # 回傳訊息
-        line_bot_api.reply_message_with_http_info(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=reply)]
-            )
-        )
 
 if __name__ == "__main__":
     app.run()
