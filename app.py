@@ -103,7 +103,7 @@ def handle_message(event):
             # 確保是在群組中，才初始化群組用戶列表
             if event.source.type == 'group':    
                 group_id = event.source.group_id
-                initialize_user_list(group_id)
+                initialize_user_list()
 
             reply = "已重置名單。"
             line_bot_api.reply_message_with_http_info(
