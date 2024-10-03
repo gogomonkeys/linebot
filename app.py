@@ -55,8 +55,8 @@ def handle_message(event):
             reply = f"請假人員:\n{on_leave}\n\n無請假人員:\n{no_leave}"
 
         # 其他訊息回傳原訊息
-        else:
-            reply = f"您說的是: {user_message}"
+        #else:
+        #    reply = f"您說的是: {user_message}"
 
         # 回傳訊息
         line_bot_api.reply_message_with_http_info(
