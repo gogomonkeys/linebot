@@ -3,8 +3,7 @@ from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
-import json
-import requests
+
 
 app = Flask(__name__)
 
@@ -16,40 +15,16 @@ handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
 leave_list = set()  # 記錄請假人
 user_list = set()   # 記錄所有傳送訊息的用戶
 
-
-def get_group_member_ids(group_id, access_token):
-    url = f"https://api.line.me/v2/bot/group/{group_id}/members/ids"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()  # 這將引發 HTTPError，處理所有的 HTTP 錯誤狀況
-        data = response.json()
-        member_ids = data.get("memberIds", [])
-        return member_ids
-    except requests.exceptions.RequestException as e:
-        print(f"API 請求出錯: {e}")
-        return []
-
-
-def initialize_user_list(group_id):
+def initialize_user_list():
     """初始化，將群組中的所有用戶加入 user_list"""
-    with ApiClient(configuration) as api_client:
-        line_bot_api = MessagingApi(api_client)
-
-        # 獲取所有群組成員的user_id
-        member_ids = get_group_member_ids(group_id, configuration.access_token)
-        print("群組成員的user_id:", member_ids)
+    members_name = ["陳永慶", "Jyun-Fu", "Mia Huang* XIN YU", "瀚", "蕭名雅", "陳仕軒"]
         
-        # 取得每個成員的名稱並加入 user_list
-        for member_id in member_ids:
-            try:
-                profile = line_bot_api.get_group_member_profile(group_id=group_id, user_id=member_id)
-                user_list.add(profile.display_name)
-            except Exception as e:
-                print(f"無法取得成員 {member_id} 的資料: {e}")
+    # 取得每個成員的名稱並加入 user_list
+    for member_name in members_name:
+        try:
+            user_list.add(member_name)
+        except Exception as e:
+            print(f"無法取得成員 {member_name} 的資料: {e}")
 
 
 @app.route("/callback", methods=['POST'])
@@ -73,15 +48,10 @@ def callback():
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_id = event.source.user_id  # 取得用戶ID
+    group_id = event.source.group_id  # 取得群組ID
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
-
-        # 如果是群組訊息，初始化群組成員名單
-        if event.source.type == 'group':
-            group_id = event.source.group_id
-            if not user_list:  # 確保只初始化一次
-                initialize_user_list(group_id)
 
         # 取得用戶名稱
         profile = line_bot_api.get_profile(user_id=user_id)
@@ -146,6 +116,7 @@ def handle_message(event):
         # 其他訊息不回覆任何內容，避免干擾
         else:
             pass  # 不進行回覆
+            
 
 if __name__ == "__main__":
     app.run()
