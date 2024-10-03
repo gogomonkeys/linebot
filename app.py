@@ -56,8 +56,7 @@ def handle_message(event):
 
         # 其他訊息回傳原訊息
         else:
-            #reply = f"您說的是: {user_message}"
-            print("other message")
+            pass  # 不進行回覆
 
         # 回傳訊息
         line_bot_api.reply_message_with_http_info(
