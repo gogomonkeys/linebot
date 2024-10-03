@@ -15,6 +15,22 @@ handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
 leave_list = set()  # 記錄請假人
 user_list = set()   # 記錄所有傳送訊息的用戶
 
+
+def initialize_user_list(group_id):
+    """初始化，將群組中的所有用戶加入 user_list"""
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        
+        # 獲取群組成員ID列表
+        member_ids_response = line_bot_api.get_group_member_ids(group_id)
+        member_ids = member_ids_response.member_ids
+        
+        # 取得每個成員的名稱並加入 user_list
+        for member_id in member_ids:
+            profile = line_bot_api.get_profile(user_id=member_id)
+            user_list.add(profile.display_name)
+
+
 @app.route("/callback", methods=['POST'])
 def callback():
     # 取得 X-Line-Signature 標頭
@@ -39,6 +55,12 @@ def handle_message(event):
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
+
+        # 如果是群組訊息，初始化群組成員名單
+        if event.source.type == 'group':
+            group_id = event.source.group_id
+            if not user_list:  # 確保只初始化一次
+                initialize_user_list(group_id)
 
         # 取得用戶名稱
         profile = line_bot_api.get_profile(user_id=user_id)
@@ -86,7 +108,8 @@ def handle_message(event):
         # 如果訊息中包含 "重置"，清空請假名單並回覆
         elif "_重置" in user_message:
             leave_list.clear()
-            reply = "已清空請假名單。"
+            initialize_user_list(group_id)
+            reply = "已重置名單。"
             line_bot_api.reply_message_with_http_info(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
