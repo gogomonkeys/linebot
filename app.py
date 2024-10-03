@@ -4,6 +4,7 @@ from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import json
+import requests
 
 app = Flask(__name__)
 
@@ -16,12 +17,31 @@ leave_list = set()  # 記錄請假人
 user_list = set()   # 記錄所有傳送訊息的用戶
 
 
+def get_group_member_ids(group_id, access_token):
+    url = f"https://api.line.me/v2/bot/group/{group_id}/members/ids"
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # 這將引發 HTTPError，處理所有的 HTTP 錯誤狀況
+        data = response.json()
+        member_ids = data.get("memberIds", [])
+        return member_ids
+    except requests.exceptions.RequestException as e:
+        print(f"API 請求出錯: {e}")
+        return []
+
+
 def initialize_user_list(group_id):
     """初始化，將群組中的所有用戶加入 user_list"""
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
 
-        member_ids = ["USER_ID_1", "USER_ID_2", "USER_ID_3"]  # 請用實際用戶ID替換
+        # 獲取所有群組成員的user_id
+        member_ids = get_group_member_ids(group_id, configuration.access_token)
+        print("群組成員的user_id:", member_ids)
         
         # 取得每個成員的名稱並加入 user_list
         for member_id in member_ids:
@@ -109,14 +129,19 @@ def handle_message(event):
         # 如果訊息中包含 "重置"，清空請假名單並回覆
         elif "_重置" in user_message:
             leave_list.clear()
-            initialize_user_list(group_id)
+            
+            # 確保是在群組中，才初始化群組用戶列表
+            if event.source.type == 'group':    
+                group_id = event.source.group_id
+                initialize_user_list(group_id)
+
             reply = "已重置名單。"
             line_bot_api.reply_message_with_http_info(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text=reply)]
                 )
-            )    
+            )
 
         # 其他訊息不回覆任何內容，避免干擾
         else:
