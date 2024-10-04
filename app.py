@@ -67,13 +67,13 @@ def handle_message(event):
                         PostbackAction(label="請假", data="action=leave"),
                         PostbackAction(label="打球", data="action=play"),
                         PostbackAction(label="飲料盃PASS", data="action=no_drink"),
-                        PostbackAction(label="加入飲料盃", data="action=join_drink"),  # 新增加入飲料盃的選項
+                        #PostbackAction(label="加入飲料盃", data="action=join_drink"),  # 新增加入飲料盃的選項
                         PostbackAction(label="查看名單", data="action=view_list")
                     ]
                 )
             )
 
-            line_bot_api.reply_message_with_http_info(
+            line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[template_message]
@@ -87,7 +87,28 @@ def handle_message(event):
             initialize_user_list()
             reply = "已重置名單。"
 
-            line_bot_api.reply_message_with_http_info(
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=reply)]
+                )
+            )
+
+    elif "_drink" in user_message:  # 當訊息包含 "_drink" 才執行
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+
+            # 取得用戶名稱
+            profile = line_bot_api.get_profile(user_id=user_id)
+            user_name = profile.display_name
+
+            if user_name not in leave_list:  # 檢查是否在請假名單中
+                drink_list.add(user_name)
+                reply = f"已將 {user_name} 加入飲料盃名單。"
+            else:
+                reply = f"{user_name} 在請假名單中，無法加入飲料盃。"
+
+            line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text=reply)]
@@ -120,20 +141,14 @@ def handle_postback(event):
         elif action_data == "action=no_drink":
             drink_list.discard(user_name)
             reply = f"已將 {user_name} 從飲料盃名單中移除。" 
-        elif action_data == "action=join_drink":  # 處理加入飲料盃
-            if user_name not in leave_list:  # 檢查是否在請假名單中
-                drink_list.add(user_name)
-                reply = f"已將 {user_name} 加入飲料盃名單。"
-            else:
-                reply = f"{user_name} 在請假名單中，無法加入飲料盃。"   
         elif action_data == "action=view_list":
             on_leave = "\n".join(leave_list) if leave_list else "目前無人請假"
             no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "目前沒人出席"
             on_drink = "\n".join(drink_list) if drink_list else "目前無人參加飲料盃"
-            reply = f"打球人員:\n{no_leave}\n\n飲飲料盃:\n{on_drink}\n請假人員:\n{on_leave}"
+            reply = f"打球人員:\n{no_leave}\n\n飲料盃:\n{on_drink}\n請假人員:\n{on_leave}"
 
         # 回覆用戶操作結果
-        line_bot_api.reply_message_with_http_info(
+        line_bot_api.reply_message(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[TextMessage(text=reply)]
