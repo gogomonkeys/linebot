@@ -44,7 +44,7 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text  # 取得用戶訊息
 
-    if "_呼叫" in user_message:  # 當訊息包含 "_呼叫" 才顯示樣板訊息
+    if "_STAR" in user_message:  # 當訊息包含 "_呼叫" 才顯示樣板訊息
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
 
@@ -57,8 +57,8 @@ def handle_message(event):
             template_message = TemplateMessage(
                 alt_text="這是樣板訊息",
                 template=ButtonsTemplate(
-                    thumbnail_image_url="https://steam.oxxostudio.tw/download/python/line-template-message-demo.jpg",  # 加入圖片
-                    title="選擇操作",
+                    thumbnail_image_url="https://www.deafsports.org.tw/web/wp-content/uploads/2017/01/Basketball.jpg",  # 加入圖片
+                    title="Star Knight ",
                     text="請選擇您要進行的操作",
                     actions=[
                         PostbackAction(label="請假", data="action=leave"),
