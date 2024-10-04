@@ -40,13 +40,13 @@ def callback():
 
     return 'OK'
 
-# 處理文字訊息事件，只有收到 "_呼叫" 文字時才發送樣板訊息
+# 處理文字訊息事件
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text  # 取得用戶訊息
 
-    if "_STAR" in user_message:  # 當訊息包含 "_呼叫" 才顯示樣板訊息
+    if "_STAR" in user_message:  # 當訊息包含 "_STAR" 才顯示樣板訊息
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
 
@@ -68,8 +68,7 @@ def handle_message(event):
                         PostbackAction(label="打球", data="action=play"),
                         PostbackAction(label="飲料盃PASS", data="action=no_drink"),
                         PostbackAction(label="加入飲料盃", data="action=join_drink"),  # 新增加入飲料盃的選項
-                        PostbackAction(label="查看名單", data="action=view_list"),
-                        PostbackAction(label="重置名單", data="action=reset_list")
+                        PostbackAction(label="查看名單", data="action=view_list")
                     ]
                 )
             )
@@ -78,6 +77,20 @@ def handle_message(event):
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[template_message]
+                )
+            )
+
+    elif "_reset" in user_message:  # 當訊息包含 "_reset" 才執行
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            leave_list.clear()
+            initialize_user_list()
+            reply = "已重置名單。"
+
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=reply)]
                 )
             )
 
@@ -118,10 +131,6 @@ def handle_postback(event):
             no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "目前沒人出席"
             on_drink = "\n".join(drink_list) if drink_list else "目前無人參加飲料盃"
             reply = f"打球人員:\n{no_leave}\n\n飲飲料盃:\n{on_drink}\n請假人員:\n{on_leave}"
-        elif action_data == "action=reset_list":
-            leave_list.clear()
-            initialize_user_list()
-            reply = "已重置名單。"
 
         # 回覆用戶操作結果
         line_bot_api.reply_message_with_http_info(
