@@ -48,7 +48,7 @@ def callback():
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     user_id = event.source.user_id  # 取得用戶ID
-    group_id = event.source.group_id  # 取得群組ID
+    #group_id = event.source.group_id  # 取得群組ID
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
@@ -100,10 +100,7 @@ def handle_message(event):
         elif "_重置" in user_message:
             leave_list.clear()
             
-            # 確保是在群組中，才初始化群組用戶列表
-            if event.source.type == 'group':    
-                group_id = event.source.group_id
-                initialize_user_list()
+            initialize_user_list()
 
             reply = "已重置名單。"
             line_bot_api.reply_message_with_http_info(
