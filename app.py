@@ -45,7 +45,9 @@ def callback():
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text  # 取得用戶訊息
-
+    profile = line_bot_api.get_profile(user_id=user_id)
+    user_name = profile.display_name
+    print(f'{user_name}={user_id}')
     
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
@@ -62,8 +64,6 @@ def handle_message(event):
             # 取得用戶名稱
             profile = line_bot_api.get_profile(user_id=user_id)
             user_name = profile.display_name
-            #user_list.add(user_name)
-            #drink_list.add(user_name)
 
             # 發送樣板訊息給用戶，包含圖片
             template_message = TemplateMessage(
