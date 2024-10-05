@@ -17,7 +17,7 @@ drink_list = set()  # 紀錄參加飲料盃人員
 
 def initialize_user_list():
     """初始化，將群組中的所有用戶加入 user_list"""
-    members_name = ["陳永慶", "Jyun-Fu", "Mia Huang* XIN YU", "瀚", "蕭名雅", "陳仕軒"]
+    members_name = ["陳永慶", "AQM>U852>WeiZhi_Huan", "Kuan Shu Fan", "Wei", "傑仁", "吳建鋒","呂呂","柏燐","育豪(Fortitude)","莊阿嘎","金庸","鐘小豬","阿勛 (運動按摩-史考特)","陳阿祥"]
         
     for member_name in members_name:
         try:
