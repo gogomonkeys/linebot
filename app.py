@@ -54,7 +54,7 @@ def handle_message(event):
         line_bot_api.show_loading_animation(
             ShowLoadingAnimationRequest(
                 chatId=user_id,  # 指定用戶 ID
-                loadingSeconds=3  # 顯示動畫 3 秒
+                loadingSeconds=5  # 顯示動畫 5 秒
             )
         )
         
@@ -132,7 +132,7 @@ def handle_postback(event):
         line_bot_api.show_loading_animation(
             ShowLoadingAnimationRequest(
                 chatId=user_id,  # 指定用戶 ID
-                loadingSeconds=3  # 顯示動畫 3 秒
+                loadingSeconds=5  # 顯示動畫 5 秒
             )
         )
         
