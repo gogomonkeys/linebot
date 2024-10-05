@@ -145,8 +145,8 @@ def handle_postback(event):
             user_list.discard(user_name)
             drink_list.discard(user_name)
             reply = f"已將 {user_name} 列入請假名單。"
-            reply = f"請假人員:\n{on_leave}"
             on_leave = "\n".join(leave_list) if leave_list else "目前無人請假"
+            reply = f"請假人員:\n{on_leave}"
         elif action_data == "action=play":
             leave_list.discard(user_name)
             user_list.add(user_name)
