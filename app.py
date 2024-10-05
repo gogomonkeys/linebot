@@ -1,7 +1,7 @@
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, TemplateMessage, ButtonsTemplate, PostbackAction
+from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, TemplateMessage, ButtonsTemplate, PostbackAction, ShowLoadingAnimationRequest
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 
 app = Flask(__name__)
@@ -46,10 +46,19 @@ def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text  # 取得用戶訊息
 
-    if "_STAR" in user_message:  # 當訊息包含 "_STAR" 才顯示樣板訊息
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
+    
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
 
+        # Step 1: 顯示等待動畫
+        line_bot_api.show_loading_animation(
+            ShowLoadingAnimationRequest(
+                chatId=user_id,  # 指定用戶 ID
+                loadingSeconds=3  # 顯示動畫 3 秒
+            )
+        )
+        
+        if "_STAR" in user_message:  # 當訊息包含 "_STAR" 才顯示樣板訊息
             # 取得用戶名稱
             profile = line_bot_api.get_profile(user_id=user_id)
             user_name = profile.display_name
@@ -80,9 +89,7 @@ def handle_message(event):
                 )
             )
 
-    elif "_reset" in user_message:  # 當訊息包含 "_reset" 才執行
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
+        elif "_reset" in user_message:  # 當訊息包含 "_reset" 才執行
             leave_list.clear()
             initialize_user_list()
             reply = "已重置名單。"
@@ -94,10 +101,7 @@ def handle_message(event):
                 )
             )
 
-    elif "_drink" in user_message:  # 當訊息包含 "_drink" 才執行
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-
+        elif "_drink" in user_message:  # 當訊息包含 "_drink" 才執行
             # 取得用戶名稱
             profile = line_bot_api.get_profile(user_id=user_id)
             user_name = profile.display_name
@@ -124,7 +128,15 @@ def handle_postback(event):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
 
-        # 取得用戶名稱
+        # Step 1: 顯示等待動畫
+        line_bot_api.show_loading_animation(
+            ShowLoadingAnimationRequest(
+                chatId=user_id,  # 指定用戶 ID
+                loadingSeconds=3  # 顯示動畫 3 秒
+            )
+        )
+        
+        # Step 2: 取得用戶名稱並處理回傳動作
         profile = line_bot_api.get_profile(user_id=user_id)
         user_name = profile.display_name
 
@@ -145,9 +157,9 @@ def handle_postback(event):
             on_leave = "\n".join(leave_list) if leave_list else "目前無人請假"
             no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "目前沒人出席"
             on_drink = "\n".join(drink_list) if drink_list else "目前無人參加飲料盃"
-            reply = f"打球人員:\n{no_leave}\n\n飲料盃:\n{on_drink}\n請假人員:\n{on_leave}"
+            reply = f"打球人員:\n{no_leave}\n\n飲料盃:\n{on_drink}\n\n請假人員:\n{on_leave}"
 
-        # 回覆用戶操作結果
+        # Step 3: 回覆用戶操作結果
         line_bot_api.reply_message(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
