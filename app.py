@@ -17,7 +17,7 @@ drink_list = set()  # 紀錄參加飲料盃人員
 
 def initialize_user_list():
     """初始化，將群組中的所有用戶加入 user_list"""
-    members_name = ["陳永慶", "AQM>U852>WeiZhi_Huan", "Kuan Shu Fan", "Wei", "傑仁", "吳建鋒","呂呂","柏燐","育豪(Fortitude)","莊阿嘎","金庸","鐘小豬","阿勛 (運動按摩-史考特)","陳阿祥"]
+    members_name = ["陳永慶", "Chris煒智🎸", "Kuan Shu Fan", "Wei", "傑仁", "吳建鋒","呂呂","柏燐","育豪(Fortitude)","莊阿嘎","金庸","鐘小豬","阿勛（運動按摩-史考特）","陳阿祥"]
         
     for member_name in members_name:
         try:
@@ -62,8 +62,8 @@ def handle_message(event):
             # 取得用戶名稱
             profile = line_bot_api.get_profile(user_id=user_id)
             user_name = profile.display_name
-            user_list.add(user_name)
-            drink_list.add(user_name)
+            #user_list.add(user_name)
+            #drink_list.add(user_name)
 
             # 發送樣板訊息給用戶，包含圖片
             template_message = TemplateMessage(
@@ -149,7 +149,7 @@ def handle_postback(event):
             leave_list.discard(user_name)
             user_list.add(user_name)
             drink_list.add(user_name)
-            reply = f"已將 {user_name} 重新加入打球名單。"
+            reply = f"已將 {user_name} 加入打球名單。"
         elif action_data == "action=no_drink":
             drink_list.discard(user_name)
             reply = f"已將 {user_name} 從飲料盃名單中移除。" 
