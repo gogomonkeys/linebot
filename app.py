@@ -145,14 +145,20 @@ def handle_postback(event):
             user_list.discard(user_name)
             drink_list.discard(user_name)
             reply = f"已將 {user_name} 列入請假名單。"
+            reply = f"請假人員:\n{on_leave}"
+            on_leave = "\n".join(leave_list) if leave_list else "目前無人請假"
         elif action_data == "action=play":
             leave_list.discard(user_name)
             user_list.add(user_name)
             drink_list.add(user_name)
             reply = f"已將 {user_name} 加入打球名單。"
+            no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "目前沒人出席"
+            reply = f"打球人員:\n{no_leave}"
         elif action_data == "action=no_drink":
             drink_list.discard(user_name)
             reply = f"已將 {user_name} 從飲料盃名單中移除。" 
+            on_drink = "\n".join(drink_list) if drink_list else "目前無人參加飲料盃"
+            reply = f"飲料盃:\n{on_drink}"
         elif action_data == "action=view_list":
             on_leave = "\n".join(leave_list) if leave_list else "目前無人請假"
             no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "目前沒人出席"
