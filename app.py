@@ -45,12 +45,14 @@ def callback():
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text  # 取得用戶訊息
-    profile = line_bot_api.get_profile(user_id=user_id)
-    user_name = profile.display_name
-    print(f'{user_name}={user_id}')
+    
     
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
+
+        profile = line_bot_api.get_profile(user_id=user_id)
+        user_name = profile.display_name
+        print(f'{user_name}={user_id}')
 
         # Step 1: 顯示等待動畫
         line_bot_api.show_loading_animation(
