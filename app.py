@@ -126,7 +126,11 @@ def handle_message(event):
 @handler.add(PostbackEvent)
 def handle_postback(event):
     action_data = event.postback.data
+    print(event)
+    print(event.postback)
+    print(action_data)
     user_id = event.source.user_id
+    print(event.source)
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
