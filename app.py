@@ -126,20 +126,25 @@ def handle_message(event):
             profile = line_bot_api.get_profile(user_id=user_id)
             requester_name = profile.display_name
 
-            # 嘗試從訊息中提取被請假者的名字
-            message_parts = user_message.split()
-            if len(message_parts) > 1:
-                target_name = message_parts[1]
+            if event.message.mention:
+                mentionees = event.message.mention.mentionees
+                mentioned_user_ids = [mention.user_id for mention in mentionees]
+                print(event.message.mention)
 
-                if target_name in user_list or target_name in drink_list:
-                    leave_list.add(target_name)
-                    user_list.discard(target_name)
-                    drink_list.discard(target_name)
-                    reply = f"{requester_name} 已為 {target_name} 請假，將其加入請假名單並從打球和飲料盃名單中移除。"
-                else:
-                    reply = f"無法找到 {target_name}，請確認名稱是否正確。"
+
+                for mentioned_user_id in mentioned_user_ids:
+                    mentioned_profile = line_bot_api.get_profile(user_id=mentioned_user_id)
+                    target_name = mentioned_profile.display_name
+            
+                    if target_name in user_list or target_name in drink_list:
+                        leave_list.add(target_name)
+                        user_list.discard(target_name)
+                        drink_list.discard(target_name)
+                        reply = f"{requester_name} 已為 {target_name} 請假，將其加入請假名單並從打球和飲料盃名單中移除。"
+                    else:
+                        reply = f"無法找到 {target_name}，請確認名稱是否正確。"
             else:
-                reply = "請提供被請假者的名字，格式: _請假 [名字]。"
+                reply = "請使用@提及要請假的對象。"
 
             line_bot_api.reply_message(
                 ReplyMessageRequest(
