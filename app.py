@@ -1,8 +1,9 @@
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, TemplateMessage, ButtonsTemplate, PostbackAction, ShowLoadingAnimationRequest
+from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, TemplateMessage, ButtonsTemplate, PostbackAction, ShowLoadingAnimationRequest, ImageMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
+import time
 
 app = Flask(__name__)
 
@@ -151,7 +152,19 @@ def handle_message(event):
                     reply_token=event.reply_token,
                     messages=[TextMessage(text=reply)]
                 )
-            )    
+            )
+
+        # _天氣指令：顯示即時天氣圖片
+        elif "_天氣" in user_message:
+            img_url = f'https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0058-001.png?{time.time_ns()}'
+            
+            # 發送圖片訊息給用戶
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[ImageMessage(original_content_url=img_url, preview_image_url=img_url)]
+                )
+            )        
 
 # 處理按鈕回傳事件
 @handler.add(PostbackEvent)
