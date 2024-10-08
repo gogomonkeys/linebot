@@ -140,7 +140,7 @@ def handle_message(event):
                         leave_list.add(target_name)
                         user_list.discard(target_name)
                         drink_list.discard(target_name)
-                        reply = f"{requester_name} 已為 {target_name} 請假，將其加入請假名單並從打球和飲料盃名單中移除。"
+                        reply = f"{requester_name} 已為 {target_name} 請假。"
                     else:
                         reply = f"無法找到 {target_name}，請確認名稱是否正確。"
             else:
@@ -198,10 +198,19 @@ def handle_postback(event):
             on_drink = "\n".join(drink_list) if drink_list else "目前無人參加飲料盃"
             reply = f"飲料盃:\n{on_drink}"
         elif action_data == "action=view_list":
+            # 計算人數
+            leave_count = len(leave_list)
+            play_count = len(user_list - leave_list)
+            drink_count = len(drink_list)
+
+            # 名單顯示
             on_leave = "\n".join(leave_list) if leave_list else "目前無人請假"
             no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "目前沒人出席"
             on_drink = "\n".join(drink_list) if drink_list else "目前無人參加飲料盃"
-            reply = f"打球人員:\n{no_leave}\n\n飲料盃:\n{on_drink}\n\n請假人員:\n{on_leave}"
+            # 回覆內容，包含總人數
+            reply = (f"打球人員 ({play_count} 人):\n{no_leave}\n\n"
+                     f"飲料盃 ({drink_count} 人):\n{on_drink}\n\n"
+                     f"請假人員 ({leave_count} 人):\n{on_leave}")
 
         # Step 3: 回覆用戶操作結果
         line_bot_api.reply_message(
