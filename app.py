@@ -6,9 +6,12 @@ from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 import time
 import firebase_admin
 from firebase_admin import credentials, firestore
+import json
+import os
 
-# 初始化 Firebase 憑證
-cred = credentials.Certificate('F:/vsproject/line-bot/serviceAccountKey.json')
+# 從環境變數讀取 JSON 格式的憑證
+service_account_info = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
+cred = credentials.Certificate(service_account_info)
 firebase_admin.initialize_app(cred)
 
 # 初始化 Firestore 客戶端
