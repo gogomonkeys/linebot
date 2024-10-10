@@ -4,6 +4,15 @@ from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, TemplateMessage, ButtonsTemplate, PostbackAction, ShowLoadingAnimationRequest, ImageMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 import time
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# 初始化 Firebase 憑證
+cred = credentials.Certificate('F:/vsproject/line-bot/serviceAccountKey.json')
+firebase_admin.initialize_app(cred)
+
+# 初始化 Firestore 客戶端
+db = firestore.client()
 
 app = Flask(__name__)
 
@@ -12,20 +21,39 @@ configuration = Configuration(access_token='Tb4h2RQnphtyXu3ogWSF4oUatDDaJPZRAKFU
 handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
 
 # 請假和所有人員名單
-leave_list = set()  # 記錄請假人
-user_list = set()   # 記錄參加打球的人員
-drink_list = set()  # 紀錄參加飲料盃人員
+# leave_list = set()  # 記錄請假人
+# user_list = set()   # 記錄參加打球的人員
+# drink_list = set()  # 紀錄參加飲料盃人員
 
 def initialize_user_list():
     """初始化，將群組中的所有用戶加入 user_list"""
     members_name = ["陳永慶", "Chris煒智🎸", "Kuan Shu Fan", "Wei", "傑仁", "吳建鋒","呂呂","柏燐","育豪(Fortitude)","莊阿嘎","金庸","鐘小豬","阿勛（運動按摩-史考特）","陳阿祥"]
-        
+
+    # for member_name in members_name:
+    #     try:
+    #         user_list.add(member_name)
+    #         drink_list.add(member_name)
+    #     except Exception as e:
+    #         print(f"無法取得成員 {member_name} 的資料: {e}")
+
+    user_list_ref = db.collection("user_list")  # Firebase 的 user_list 集合
+    drink_list_ref = db.collection("drink_list")  # Firebase 的 drink_list 集合
+
     for member_name in members_name:
         try:
-            user_list.add(member_name)
-            drink_list.add(member_name)
+            # 檢查用戶是否已經在 Firebase 中，如果不存在則加入
+            user_doc = user_list_ref.document(member_name).get()
+            if not user_doc.exists:
+                user_list_ref.document(member_name).set({"name": member_name})
+
+            # 檢查飲料盃名單中是否已存在該用戶，如果不存在則加入
+            drink_doc = drink_list_ref.document(member_name).get()
+            if not drink_doc.exists:
+                drink_list_ref.document(member_name).set({"name": member_name})
+            
         except Exception as e:
-            print(f"無法取得成員 {member_name} 的資料: {e}")
+            print(f"無法儲存成員 {member_name} 的資料: {e}")
+
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -94,7 +122,17 @@ def handle_message(event):
             )
 
         elif "_reset" in user_message:  # 當訊息包含 "_reset" 才執行
-            leave_list.clear()
+            # 清空 Firestore 的請假名單
+            leave_list_ref = db.collection("leave_list")
+            leave_docs = leave_list_ref.stream()
+            
+            # 刪除請假名單中的所有紀錄
+            for doc in leave_docs:
+                leave_list_ref.document(doc.id).delete()
+
+            #leave_list.clear()
+            
+            # 初始化群組成員到 Firestore 的 user_list 和 drink_list
             initialize_user_list()
             reply = "已重置名單。"
 
@@ -105,14 +143,23 @@ def handle_message(event):
                 )
             )
 
-        elif "_drink" in user_message:  # 當訊息包含 "_drink" 才執行
+        elif "_drink" in user_message:                  # 當訊息包含 "_drink" 才執行
             # 取得用戶名稱
             profile = line_bot_api.get_profile(user_id=user_id)
             user_name = profile.display_name
+            
+            # 檢查 Firestore 請假名單中是否有該用戶
+            leave_list_ref = db.collection("leave_list").where("user_name","==", user_name).get()
 
-            if user_name not in leave_list:  # 檢查是否在請假名單中
-                drink_list.add(user_name)
+            if not leave_list_ref:                           # 如果用戶不在請假名單中
+                # 將用戶新增到 Firestore 的 drink_list
+                drink_list_ref = db.connection("drink_list")
+                drink_list_ref.document("user_name").set({"user_id": user_id, "name": user_name})
                 reply = f"已將 {user_name} 加入飲料盃名單。"
+
+            # if user_name not in leave_list:  # 檢查是否在請假名單中
+            #     drink_list.add(user_name)
+            #     reply = f"已將 {user_name} 加入飲料盃名單。"
             else:
                 reply = f"{user_name} 在請假名單中，無法加入飲料盃。"
 
@@ -136,12 +183,27 @@ def handle_message(event):
                 for mentioned_user_id in mentioned_user_ids:
                     mentioned_profile = line_bot_api.get_profile(user_id=mentioned_user_id)
                     target_name = mentioned_profile.display_name
-            
-                    if target_name in user_list or target_name in drink_list:
-                        leave_list.add(target_name)
-                        user_list.discard(target_name)
-                        drink_list.discard(target_name)
+
+                    # 檢查 Firestore 中該用戶是否已在 user_list 或 drink_list
+                    user_list_ref = db.collection("user_list").where("user_name", "==", target_name).get()
+                    drink_list_ref = db.collection("drink_list").where("user_name", "==", target_name).get()
+
+                    if user_list_ref or drink_list_ref:
+                        # 更新 Firestore: 將用戶加入請假名單，並從 user_list 和 drink_list 中移除
+                        leave_list_ref = db.collection("leave_list")
+                        leave_list_ref.document("target_name").set({"user_id": user_id, "user_name": target_name})
+
+                        # 從 user_list 和 drink_list 移除
+                        db.collection("user_list").where("name", "==", target_name).get().delete()
+                        db.collection("drink_list").where("name", "==", target_name).get().delete()
+                    
                         reply = f"{requester_name} 已為 {target_name} 請假。"
+
+                    # if target_name in user_list or target_name in drink_list:
+                    #     leave_list.add(target_name)
+                    #     user_list.discard(target_name)
+                    #     drink_list.discard(target_name)
+                    #     reply = f"{requester_name} 已為 {target_name} 請假。"
                     else:
                         reply = f"無法找到 {target_name}，請確認名稱是否正確。"
             else:
@@ -192,25 +254,70 @@ def handle_postback(event):
         user_name = profile.display_name
 
         if action_data == "action=leave":
-            leave_list.add(user_name)
-            user_list.discard(user_name)
-            drink_list.discard(user_name)
+            # 從 drink_list 和 drink_list 移除
+            leave_list_ref = db.collection("leave_list")
+            leave_list_ref.document("user_name").set({"user_id": user_id, "name": user_name})
+
+            # 從 user_list 和 drink_list 移除
+            db.collection("user_list").where("user_name", "==", user_name).get().delete()
+            db.collection("drink_list").where("user_name", "==", user_name).get().delete()
+
+            # leave_list.add(user_name)
+            # user_list.discard(user_name)
+            # drink_list.discard(user_name)
             reply = f"已將 {user_name} 列入請假名單。"
             on_leave = "\n".join(leave_list) if leave_list else "目前無人請假"
             reply = f"請假人員:\n{on_leave}"
+            
+            # 從 Firestore 獲取請假人員名單
+            leave_list_ref = db.collection("leave_list").stream()
+
+            # 取得所有請假用戶的名稱，並組合成一個字串
+            leave_list = [doc.to_dict()["user_name"] for doc in leave_list_ref]
+            print(leave_list)
+            on_leave = "\n".join(leave_list) if leave_list else "目前無人請假"
+            reply = f"請假人員:\n{on_leave}"
+
         elif action_data == "action=play":
-            leave_list.discard(user_name)
-            user_list.add(user_name)
-            drink_list.add(user_name)
+            #leave_list.discard(user_name)
+            # 從 leave_list 移除
+            db.collection("leave_list").where("user_name", "==", user_name).get().delete()
+
+            #user_list.add(user_name)
+            #drink_list.add(user_name)
+            # 從 user_list、drink_list 增加成員
+            user_list_ref = db.collection("user_list")
+            user_list_ref.document("user_name").set({"user_id": user_id, "name": user_name})
+            drink_list_ref = db.collection("drink_list")
+            drink_list_ref.document("user_name").set({"user_id": user_id, "name": user_name})
+
             reply = f"已將 {user_name} 加入打球名單。"
             no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "目前沒人出席"
             reply = f"打球人員:\n{no_leave}"
+
+            # 取得所有請假用戶、打球成員的名稱，並組合成一個字串
+            user_list = [doc.to_dict()["user_name"] for doc in user_list_ref]
+            leave_list = [doc.to_dict()["user_name"] for doc in leave_list_ref]
+            print(user_list)
+            print(leave_list)
+            no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "目前沒人出席"
+            reply = f"請假人員:\n{on_leave}"
+
         elif action_data == "action=no_drink":
-            drink_list.discard(user_name)
+            # drink_list.discard(user_name)
+            # 從 drink_list 移除
+            db.collection("drink_list").where("user_name", "==", user_name).get().delete()
             reply = f"已將 {user_name} 從飲料盃名單中移除。" 
+
+            # 取得所有飲料盃成員的名稱，並組合成一個字串
+            drink_list = [doc.to_dict()["user_name"] for doc in user_list_ref]
             on_drink = "\n".join(drink_list) if drink_list else "目前無人參加飲料盃"
             reply = f"飲料盃:\n{on_drink}"
+
         elif action_data == "action=view_list":
+            user_list = [doc.to_dict()["user_name"] for doc in user_list_ref]
+            leave_list = [doc.to_dict()["user_name"] for doc in leave_list_ref]
+            drink_list = [doc.to_dict()["user_name"] for doc in drink_list_ref]
             # 計算人數
             leave_count = len(leave_list)
             play_count = len(user_list - leave_list)
