@@ -1,9 +1,10 @@
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, TemplateMessage, ButtonsTemplate, PostbackAction, ShowLoadingAnimationRequest, ImageMessage
+from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, TemplateMessage, ButtonsTemplate, PostbackAction, AsyncApiClient, AsyncMessagingApi, ShowLoadingAnimationRequest, ImageMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 import time
+import asyncio
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
@@ -19,9 +20,20 @@ db = firestore.client()
 
 app = Flask(__name__)
 
-# LINE Bot 設定
+# 建立 Configuration 和 AsyncApiClient 的實例
 configuration = Configuration(access_token='Tb4h2RQnphtyXu3ogWSF4oUatDDaJPZRAKFUMyZjuTi8sa3HkoYdtF48038gI03wVMyyMb2mONqZMfez9Ik14MeP2A+vqdRWU4sFMkwxqnAOad1rIcOEZ7Wpv4sZTDF45SNsFWPvyEF5KTKoYWPoPAdB04t89/1O/w1cDnyilFU=')
+async_api_client = AsyncApiClient(configuration)
 handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
+
+# 建立 AsyncMessagingApi 的實例
+line_bot_animation_api = AsyncMessagingApi(async_api_client)
+
+def show_loading_animation(user_id, loading_seconds=5):
+    # 建立 ShowLoadingAnimationRequest 的實例
+    request = ShowLoadingAnimationRequest(chatId=user_id, loadingSeconds=loading_seconds)
+    
+    # 發送顯示加載動畫的請求
+    line_bot_animation_api.show_loading_animation(request)
 
 # 請假和所有人員名單
 # leave_list = set()  # 記錄請假人
@@ -86,14 +98,9 @@ def handle_message(event):
         user_name = profile.display_name
         print(f'{user_name}={user_id}')
 
-        # Step 1: 顯示等待動畫
-        line_bot_api.show_loading_animation(
-            ShowLoadingAnimationRequest(
-                chatId=user_id,  # 指定用戶 ID
-                loadingSeconds=5  # 顯示動畫 5 秒
-            )
-        )
-        
+        # 顯示加載動畫
+        show_loading_animation(user_id, loading_seconds=5)
+
         if "_STAR" in user_message:  # 當訊息包含 "_STAR" 才顯示樣板訊息
             # 取得用戶名稱
             profile = line_bot_api.get_profile(user_id=user_id)
@@ -156,8 +163,8 @@ def handle_message(event):
 
             if not leave_list_ref:                           # 如果用戶不在請假名單中
                 # 將用戶新增到 Firestore 的 drink_list
-                drink_list_ref = db.connection("drink_list")
-                drink_list_ref.document("user_name").set({"user_id": user_id, "name": user_name})
+                drink_list_ref = db.collection("drink_list")
+                drink_list_ref.document(user_name).set({"user_id": user_id, "name": user_name})
                 reply = f"已將 {user_name} 加入飲料盃名單。"
 
             # if user_name not in leave_list:  # 檢查是否在請假名單中
@@ -197,8 +204,12 @@ def handle_message(event):
                         leave_list_ref.document("target_name").set({"user_id": user_id, "user_name": target_name})
 
                         # 從 user_list 和 drink_list 移除
-                        db.collection("user_list").where("name", "==", target_name).get().delete()
-                        db.collection("drink_list").where("name", "==", target_name).get().delete()
+                        user_docs = db.collection("user_list").where("user_name", "==", target_name).get()
+                        for doc in user_docs:
+                            db.collection("user_list").document(doc.id).delete()
+                        drink_docs = db.collection("drink_list").where("user_name", "==", target_name).get()
+                        for doc in drink_docs:
+                            db.collection("drink_list").document(doc.id).delete()
                     
                         reply = f"{requester_name} 已為 {target_name} 請假。"
 
@@ -259,11 +270,15 @@ def handle_postback(event):
         if action_data == "action=leave":
             # 從 drink_list 和 drink_list 移除
             leave_list_ref = db.collection("leave_list")
-            leave_list_ref.document("user_name").set({"user_id": user_id, "name": user_name})
+            leave_list_ref.document(user_name).set({"user_id": user_id, "name": user_name})
 
             # 從 user_list 和 drink_list 移除
-            db.collection("user_list").where("user_name", "==", user_name).get().delete()
-            db.collection("drink_list").where("user_name", "==", user_name).get().delete()
+            user_docs = db.collection("user_list").where("user_name", "==", user_name).get()
+            for doc in user_docs:
+                db.collection("user_list").document(doc.id).delete()
+            drink_docs = db.collection("drink_list").where("user_name", "==", user_name).get()
+            for doc in drink_docs:
+                db.collection("drink_list").document(doc.id).delete()
 
             # leave_list.add(user_name)
             # user_list.discard(user_name)
@@ -284,15 +299,17 @@ def handle_postback(event):
         elif action_data == "action=play":
             #leave_list.discard(user_name)
             # 從 leave_list 移除
-            db.collection("leave_list").where("user_name", "==", user_name).get().delete()
+            leave_docs = db.collection("leave_list").where("user_name", "==", user_name).get()
+            for doc in leave_docs:
+                db.collection("leave_list").document(doc.id).delete()
 
             #user_list.add(user_name)
             #drink_list.add(user_name)
             # 從 user_list、drink_list 增加成員
             user_list_ref = db.collection("user_list")
-            user_list_ref.document("user_name").set({"user_id": user_id, "name": user_name})
+            user_list_ref.document(user_name).set({"user_id": user_id, "name": user_name})
             drink_list_ref = db.collection("drink_list")
-            drink_list_ref.document("user_name").set({"user_id": user_id, "name": user_name})
+            drink_list_ref.document(user_name).set({"user_id": user_id, "name": user_name})
 
             reply = f"已將 {user_name} 加入打球名單。"
             no_leave = "\n".join(user_list - leave_list) if (user_list - leave_list) else "目前沒人出席"
@@ -309,7 +326,9 @@ def handle_postback(event):
         elif action_data == "action=no_drink":
             # drink_list.discard(user_name)
             # 從 drink_list 移除
-            db.collection("drink_list").where("user_name", "==", user_name).get().delete()
+            drink_docs = db.collection("drink_list").where("user_name", "==", user_name).get()
+            for doc in drink_docs:
+                db.collection("drink_list").document(doc.id).delete()
             reply = f"已將 {user_name} 從飲料盃名單中移除。" 
 
             # 取得所有飲料盃成員的名稱，並組合成一個字串
