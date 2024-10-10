@@ -1,10 +1,9 @@
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, TemplateMessage, ButtonsTemplate, PostbackAction, AsyncApiClient, AsyncMessagingApi, ShowLoadingAnimationRequest, ImageMessage
+from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage, TemplateMessage, ButtonsTemplate, PostbackAction, ShowLoadingAnimationRequest, ImageMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, PostbackEvent
 import time
-import asyncio
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
@@ -22,7 +21,6 @@ app = Flask(__name__)
 
 # 建立 Configuration 和 AsyncApiClient 的實例
 configuration = Configuration(access_token='Tb4h2RQnphtyXu3ogWSF4oUatDDaJPZRAKFUMyZjuTi8sa3HkoYdtF48038gI03wVMyyMb2mONqZMfez9Ik14MeP2A+vqdRWU4sFMkwxqnAOad1rIcOEZ7Wpv4sZTDF45SNsFWPvyEF5KTKoYWPoPAdB04t89/1O/w1cDnyilFU=')
-async_api_client = AsyncApiClient(configuration)
 handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
 
 def show_loading_animation(user_id, loading_seconds=5):
