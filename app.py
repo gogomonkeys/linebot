@@ -25,15 +25,15 @@ configuration = Configuration(access_token='Tb4h2RQnphtyXu3ogWSF4oUatDDaJPZRAKFU
 async_api_client = AsyncApiClient(configuration)
 handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
 
-# 建立 AsyncMessagingApi 的實例
-line_bot_animation_api = AsyncMessagingApi(async_api_client)
-
 def show_loading_animation(user_id, loading_seconds=5):
     # 建立 ShowLoadingAnimationRequest 的實例
     request = ShowLoadingAnimationRequest(chatId=user_id, loadingSeconds=loading_seconds)
     
+    # 建立 MessagingApi 的實例
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
     # 發送顯示加載動畫的請求
-    line_bot_animation_api.show_loading_animation(request)
+        line_bot_api.show_loading_animation(request)
 
 # 請假和所有人員名單
 # leave_list = set()  # 記錄請假人
