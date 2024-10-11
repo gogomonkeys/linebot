@@ -335,6 +335,9 @@ def handle_postback(event):
             reply = f"飲料盃:\n{on_drink}"
 
         elif action_data == "action=view_list":
+            user_list_ref = db.collection("user_list")
+            leave_list_ref = db.collection("leave_list")
+            drink_list_ref = db.collection("leave_list")
             user_list = [doc.to_dict()["user_name"] for doc in user_list_ref]
             leave_list = [doc.to_dict()["user_name"] for doc in leave_list_ref]
             drink_list = [doc.to_dict()["user_name"] for doc in drink_list_ref]
