@@ -220,9 +220,9 @@ def handle_postback(event):
             drink_list = [doc.to_dict()["name"] for doc in db.collection("drink_list").stream()]
             leave_list = [doc.to_dict()["name"] for doc in db.collection("leave_list").stream()]
 
-            reply = (f"打球名單({len(user_list)}): \n{', '.join(user_list)}\n"
-                     f"飲料盃名單({len(drink_list)}): \n{', '.join(drink_list)}\n"
-                     f"請假名單({len(leave_list)}): \n{', '.join(leave_list)}\n")
+            reply = (f"打球名單({len(user_list)}): \n{', '.join(user_list)}\n\n"
+                     f"飲料盃名單({len(drink_list)}): \n{', '.join(drink_list)}\n\n"
+                     f"請假名單({len(leave_list)}): \n{', '.join(leave_list)}\n\n")
 
         elif action_data == "action=no_drink":
             db.collection("drink_list").document(user_name).delete()
