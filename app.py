@@ -20,8 +20,8 @@ db = firestore.client()
 app = Flask(__name__)
 
 # 建立 Configuration 和 ApiClient 的實例
-configuration = Configuration(access_token=os.getenv('LINE_ACCESS_TOKEN'))
-handler = WebhookHandler(os.getenv('LINE_SECRET'))
+configuration = Configuration(access_token='Tb4h2RQnphtyXu3ogWSF4oUatDDaJPZRAKFUMyZjuTi8sa3HkoYdtF48038gI03wVMyyMb2mONqZMfez9Ik14MeP2A+vqdRWU4sFMkwxqnAOad1rIcOEZ7Wpv4sZTDF45SNsFWPvyEF5KTKoYWPoPAdB04t89/1O/w1cDnyilFU=')
+handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
 
 def show_loading_animation(user_id, loading_seconds=5):
     request = ShowLoadingAnimationRequest(chatId=user_id, loadingSeconds=loading_seconds)
