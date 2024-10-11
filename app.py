@@ -115,7 +115,7 @@ def handle_message(event):
             )
 
         elif "_drink" in user_message:
-            leave_list_ref = db.collection("leave_list").where("user_name", "==", user_name).get()
+            leave_list_ref = db.collection("leave_list").where("name", "==", user_name).get()
             if not leave_list_ref:
                 drink_list_ref = db.collection("drink_list")
                 drink_list_ref.document(user_name).set({"user_id": user_id, "name": user_name})
@@ -139,12 +139,12 @@ def handle_message(event):
                     mentioned_profile = line_bot_api.get_profile(user_id=mentioned_user_id)
                     target_name = mentioned_profile.display_name
 
-                    user_list_ref = db.collection("user_list").where("user_name", "==", target_name).get()
-                    drink_list_ref = db.collection("drink_list").where("user_name", "==", target_name).get()
+                    user_list_ref = db.collection("user_list").where("name", "==", target_name).get()
+                    drink_list_ref = db.collection("drink_list").where("name", "==", target_name).get()
 
                     if user_list_ref or drink_list_ref:
                         leave_list_ref = db.collection("leave_list")
-                        leave_list_ref.document(target_name).set({"user_id": user_id, "user_name": target_name})
+                        leave_list_ref.document(target_name).set({"user_id": user_id, "name": target_name})
 
                         for doc in user_list_ref:
                             db.collection("user_list").document(doc.id).delete()
@@ -190,10 +190,10 @@ def handle_postback(event):
             leave_list_ref = db.collection("leave_list")
             leave_list_ref.document(user_name).set({"user_id": user_id, "name": user_name})
 
-            user_docs = db.collection("user_list").where("user_name", "==", user_name).get()
+            user_docs = db.collection("user_list").where("name", "==", user_name).get()
             for doc in user_docs:
                 db.collection("user_list").document(doc.id).delete()
-            drink_docs = db.collection("drink_list").where("user_name", "==", user_name).get()
+            drink_docs = db.collection("drink_list").where("name", "==", user_name).get()
             for doc in drink_docs:
                 db.collection("drink_list").document(doc.id).delete()
 
@@ -202,7 +202,7 @@ def handle_postback(event):
             reply = f"請假人員:\n{on_leave}"
 
         elif action_data == "action=play":
-            leave_docs = db.collection("leave_list").where("user_name", "==", user_name).get()
+            leave_docs = db.collection("leave_list").where("name", "==", user_name).get()
             for doc in leave_docs:
                 db.collection("leave_list").document(doc.id).delete()
 
