@@ -197,7 +197,7 @@ def handle_postback(event):
             for doc in drink_docs:
                 db.collection("drink_list").document(doc.id).delete()
 
-            leave_list = [doc.to_dict()["user_name"] for doc in leave_list_ref.stream()]
+            leave_list = [doc.to_dict()["name"] for doc in leave_list_ref.stream()]
             on_leave = "\n".join(leave_list) if leave_list else "目前無人請假"
             reply = f"請假人員:\n{on_leave}"
 
@@ -211,15 +211,15 @@ def handle_postback(event):
             drink_list_ref = db.collection("drink_list")
             drink_list_ref.document(user_name).set({"user_id": user_id, "name": user_name})
 
-            user_list = [doc.to_dict()["user_name"] for doc in user_list_ref.stream()]
-            leave_list = [doc.to_dict()["user_name"] for doc in leave_docs.stream()]
+            user_list = [doc.to_dict()["name"] for doc in user_list_ref.stream()]
+            leave_list = [doc.to_dict()["name"] for doc in leave_docs.stream()]
 
             reply = f"{user_name} 已加入打球名單，當前人員: \n打球: {', '.join(user_list)}\n請假: {', '.join(leave_list)}"
 
         elif action_data == 'action=view_list':
-            user_list = [doc.to_dict()["user_name"] for doc in db.collection("user_list").stream()]
-            drink_list = [doc.to_dict()["user_name"] for doc in db.collection("drink_list").stream()]
-            leave_list = [doc.to_dict()["user_name"] for doc in db.collection("leave_list").stream()]
+            user_list = [doc.to_dict()["name"] for doc in db.collection("user_list").stream()]
+            drink_list = [doc.to_dict()["name"] for doc in db.collection("drink_list").stream()]
+            leave_list = [doc.to_dict()["name"] for doc in db.collection("leave_list").stream()]
 
             reply = (f"打球名單: {', '.join(user_list)}\n"
                      f"飲料盃名單: {', '.join(drink_list)}\n"
