@@ -24,7 +24,7 @@ app = Flask(__name__)
 configuration = Configuration(access_token=os.getenv('LINE_ACCESS_TOKEN'))
 handler = WebhookHandler(os.getenv('LINE_SECRET'))
 
-def show_loading_animation(user_id, loading_seconds=5):
+def show_loading_animation(user_id, loading_seconds):
     url = 'https://api.line.me/v2/bot/chat/loading/start'
     LINE_ACCESS_TOKEN = os.getenv('LINE_ACCESS_TOKEN')
     headers = {
@@ -35,13 +35,16 @@ def show_loading_animation(user_id, loading_seconds=5):
         "chatId": user_id,
         "loadingSeconds": loading_seconds
     }
+    try:
+        response = requests.post(url, headers=headers, json=payload)
 
-    response = requests.post(url, headers=headers, json=payload)
-
-    if response.status_code == 200:
-        print("成功顯示載入動畫")
-    else:
-        print(f"顯示載入動畫失敗: {response.status_code}, {response.text}")
+        if response.status_code == 200:
+            print("成功顯示載入動畫")
+        else:
+            print(f"顯示載入動畫失敗: {response.status_code}, {response.text}")
+    except requests.exceptions.RequestException as e:
+        # 捕捉任何請求異常，並顯示錯誤訊息
+        print(f"顯示載入動畫過程中發生錯誤: {e}")
 
 def initialize_user_list():
     """初始化，將群組中的所有用戶加入 user_list 和 drink_list"""
@@ -82,13 +85,13 @@ def callback():
 def handle_message(event):
     user_id = event.source.user_id
     user_message = event.message.text
+
+    show_loading_animation(user_id, loading_seconds=5)
     
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
         profile = line_bot_api.get_profile(user_id=user_id)
         user_name = profile.display_name
-
-        show_loading_animation(user_id, loading_seconds=5)
 
         if "_STAR" in user_message:
             template_message = TemplateMessage(
@@ -133,9 +136,9 @@ def handle_message(event):
             if not leave_list_ref:
                 drink_list_ref = db.collection("drink_list")
                 drink_list_ref.document(user_name).set({"user_id": user_id, "name": user_name})
-                reply = f"已將 {user_name} 加入飲料盃名單。"
+                reply = f"已將 {user_name} 加入🥤飲料盃名單🥤。"
             else:
-                reply = f"{user_name} 在請假名單中，無法加入飲料盃。"
+                reply = f"{user_name} 在💤休戰名單💤中，無法加入飲料盃。"
 
             line_bot_api.reply_message(
                 ReplyMessageRequest(
@@ -193,9 +196,10 @@ def handle_postback(event):
     action_data = event.postback.data
     user_id = event.source.user_id
 
+    show_loading_animation(user_id, loading_seconds=5)
+
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
-        show_loading_animation(user_id, loading_seconds=5)
 
         profile = line_bot_api.get_profile(user_id=user_id)
         user_name = profile.display_name
@@ -227,7 +231,7 @@ def handle_postback(event):
 
             user_list = [doc.to_dict()["name"] for doc in user_list_ref.stream()]
 
-            reply = f"{user_name} 已加入打球名單， \n打球人員: {', '.join(user_list)}"
+            reply = f"{user_name} 已加入🏀出戰名單🏀"
 
         elif action_data == 'action=view_list':
             user_list = [doc.to_dict()["name"] for doc in db.collection("user_list").stream()]
@@ -240,7 +244,7 @@ def handle_postback(event):
 
         elif action_data == "action=no_drink":
             db.collection("drink_list").document(user_name).delete()
-            reply = f"{user_name} 已退出飲料盃。"
+            reply = f"{user_name} 已退出🥤飲料盃🥤。"
 
         line_bot_api.reply_message(
             ReplyMessageRequest(
