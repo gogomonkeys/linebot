@@ -8,6 +8,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import json
 import os
+import requests
 
 # 從環境變數讀取 JSON 格式的憑證
 service_account_info = json.loads(os.getenv('GOOGLE_CREDENTIALS'))
@@ -20,14 +21,26 @@ db = firestore.client()
 app = Flask(__name__)
 
 # 建立 Configuration 和 ApiClient 的實例
-configuration = Configuration(access_token='Tb4h2RQnphtyXu3ogWSF4oUatDDaJPZRAKFUMyZjuTi8sa3HkoYdtF48038gI03wVMyyMb2mONqZMfez9Ik14MeP2A+vqdRWU4sFMkwxqnAOad1rIcOEZ7Wpv4sZTDF45SNsFWPvyEF5KTKoYWPoPAdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('6413fb6ea05e38e1e6df22a9dd2bd0ee')
+configuration = Configuration(access_token='LINE_ACCESS_TOKEN')
+handler = WebhookHandler('LINE_SECRET')
 
 def show_loading_animation(user_id, loading_seconds=5):
-    request = ShowLoadingAnimationRequest(chatId=user_id, loadingSeconds=loading_seconds)
-    with ApiClient(configuration) as api_client:
-        line_bot_api = MessagingApi(api_client)
-        line_bot_api.show_loading_animation(request)
+    url = 'https://api.line.me/v2/bot/chat/loading/start'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {'LINE_ACCESS_TOKEN'}'
+    }
+    payload = {
+        "chatId": user_id,
+        "loadingSeconds": loading_seconds
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        print("成功顯示載入動畫")
+    else:
+        print(f"顯示載入動畫失敗: {response.status_code}, {response.text}")
 
 def initialize_user_list():
     """初始化，將群組中的所有用戶加入 user_list 和 drink_list"""
@@ -181,7 +194,7 @@ def handle_postback(event):
 
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
-        line_bot_api.show_loading_animation(ShowLoadingAnimationRequest(chatId=user_id, loadingSeconds=5))
+        show_loading_animation(user_id, loading_seconds=5)
 
         profile = line_bot_api.get_profile(user_id=user_id)
         user_name = profile.display_name
@@ -220,9 +233,9 @@ def handle_postback(event):
             drink_list = [doc.to_dict()["name"] for doc in db.collection("drink_list").stream()]
             leave_list = [doc.to_dict()["name"] for doc in db.collection("leave_list").stream()]
 
-            reply = (f"打球名單({len(user_list)}): \n{', '.join(user_list)}\n\n"
-                     f"飲料盃名單({len(drink_list)}): \n{', '.join(drink_list)}\n\n"
-                     f"請假名單({len(leave_list)}): \n{', '.join(leave_list)}\n\n")
+            reply = (f"🏀出戰名單🏀({len(user_list)}): \n{', '.join(user_list)}\n\n"
+                     f"🥤飲料盃名單🥤({len(drink_list)}): \n{', '.join(drink_list)}\n\n"
+                     f"💤休戰名單💤({len(leave_list)}): \n{', '.join(leave_list)}\n\n")
 
         elif action_data == "action=no_drink":
             db.collection("drink_list").document(user_name).delete()
