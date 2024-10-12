@@ -26,9 +26,10 @@ handler = WebhookHandler(os.getenv('LINE_SECRET'))
 
 def show_loading_animation(user_id, loading_seconds=5):
     url = 'https://api.line.me/v2/bot/chat/loading/start'
+    LINE_ACCESS_TOKEN = os.getenv('LINE_ACCESS_TOKEN')
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': f'Bearer {os.getenv('LINE_ACCESS_TOKEN')}'
+        'Authorization': f'Bearer {LINE_ACCESS_TOKEN}'
     }
     payload = {
         "chatId": user_id,
