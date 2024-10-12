@@ -21,14 +21,14 @@ db = firestore.client()
 app = Flask(__name__)
 
 # 建立 Configuration 和 ApiClient 的實例
-configuration = Configuration(access_token='LINE_ACCESS_TOKEN')
-handler = WebhookHandler('LINE_SECRET')
+configuration = Configuration(access_token=os.getenv('LINE_ACCESS_TOKEN'))
+handler = WebhookHandler(os.getenv('LINE_SECRET'))
 
 def show_loading_animation(user_id, loading_seconds=5):
     url = 'https://api.line.me/v2/bot/chat/loading/start'
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': f'Bearer {'LINE_ACCESS_TOKEN'}'
+        'Authorization': f'Bearer {os.getenv('LINE_ACCESS_TOKEN')}'
     }
     payload = {
         "chatId": user_id,
